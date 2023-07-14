@@ -1,0 +1,141 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdk 32
+
+    defaultConfig {
+        applicationId "com.hitsuthar.tracker"
+        minSdk 22
+        targetSdk 31
+        //noinspection HighAppVersionCode
+        versionCode 1
+        versionName "1.0"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags ""
+                arguments "-DANDROID_PLATFORM=android-22"
+                // https://developer.android.com/ndk/guides/cmake.html
+            }
+        }
+
+        //ndkVersion "21.4.7075529"
+        ndk {
+            // https://developer.android.com/ndk/guides/abis.html#sa
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = true
+            proguardFiles.add(file('proguard-rules.pro'))
+        }
+        debug {
+            //minifyEnabled = true
+            //proguardFiles.add(file('proguard-rules.pro'))
+        }
+    }
+
+    flavorDimensions "version"
+    productFlavors {
+        play {
+            applicationIdSuffix ""
+            versionNameSuffix ""
+            buildConfigField "String", "HOSTS_FILE_URI", "\"\""
+            buildConfigField "String", "GITHUB_LATEST_API", "\"\""
+
+            externalNativeBuild.cmake {
+                cFlags "-DPLAY"
+            }
+        }
+        github {
+            buildConfigField "String", "HOSTS_FILE_URI", "\"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts\""
+            buildConfigField "String", "GITHUB_LATEST_API", "\"https://api.github.com/repos/TrackerControl/tracker-control-android/releases\""
+
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            outputFileName = "TrackerBlocker-latest.apk"
+        }
+    }
+
+    signingConfigs {
+        release {
+            enableV1Signing true
+            enableV2Signing true
+        }
+    }
+
+    compileOptions {
+        encoding "UTF-8"
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/DEPENDENCIES']
+        }
+    }
+
+    lint {
+        disable 'MissingTranslation'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    // https://developer.android.com/jetpack/androidx/releases/
+    implementation 'androidx.appcompat:appcompat:1.5.1'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'androidx.preference:preference:1.2.0'
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.8.0'
+    annotationProcessor 'androidx.annotation:annotation:1.5.0'
+
+    // fix errors with libraries
+    def lifecycle_version = "2.5.1"
+    //implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
+
+    // https://bumptech.github.io/glide/
+    def glide_version = "4.14.2"
+    implementation("com.github.bumptech.glide:glide:$glide_version") {
+        exclude group: "com.android.support"
+    }
+    annotationProcessor "com.github.bumptech.glide:compiler:$glide_version"
+
+    implementation 'com.opencsv:opencsv:5.6'
+    implementation 'com.maxmind.geoip2:geoip2:2.14.0'
+
+    // Crash reporting
+    implementation "ch.acra:acra-mail:5.9.6"
+    implementation "ch.acra:acra-dialog:5.9.6"
+    compileOnly "com.google.auto.service:auto-service-annotations:1.0.1"
+    annotationProcessor "com.google.auto.service:auto-service:1.0.1"
+
+    // Tracker detection
+    implementation 'com.github.lanchon.dexpatcher:multidexlib2:2.3.4.r2'
+
+    implementation 'com.caverock:androidsvg-aar:1.4'
+}
+
+// Fix lint error on release builds
+configurations {
+    all {
+        exclude module: 'commons-logging'
+        exclude module: 'httpclient' // due to geoip2
+    }
+}
